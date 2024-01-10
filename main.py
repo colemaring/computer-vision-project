@@ -12,19 +12,23 @@ import ctypes
 
 # TODO: insta rage mode
 # TODO: inference speeds are spiking and then dropping, sometimes?
-# TODO: change fov from box to square
-# TODO: sometimes mouse will jump without holding aim key?
-# TODO: add saving profile settings, triggerbot randomized delay option, body shot option if using sniper, bezier curve aim path option
+# TODO: add saving profile settings, triggerbot randomized delay option, randomized triggerbot delay range, body shot option if using sniper, bezier curve aim path option
+# TODO: switch to DearPyGui, plot inference speeds in DearPyGui
+
 
 model = YOLO("desktop/runs/detect/train13/weights/best.pt")
 sct = mss()
 target = None
 
 # move the mouse by dx, dy
-def move_mouse(dx, dy, steps, sleep_time):
+def move_mouse(dx, dy, steps, sleep_time, aimHotkey):
     for _ in range(steps):
-        win32api.mouse_event(win32con.MOUSEEVENTF_MOVE, int(dx), int(dy), 0, 0)
-        time.sleep(sleep_time)
+        # check if the aim hotkey is still pressed
+        if GetAsyncKeyState(ctypes.windll.user32.VkKeyScanW(ord(aimHotkey))):
+            win32api.mouse_event(win32con.MOUSEEVENTF_MOVE, int(dx), int(dy), 0, 0)
+            time.sleep(sleep_time)
+        else:
+            break
 
 # click function for triggerbot
 def click_mouse(triggerbot_slider):
@@ -90,15 +94,15 @@ while True:
         # delta to move the mouse by
         dx = ((round(target[0] - windowCenterX) * speedScaleX_slider.get()) / smoothing_slider.get()) * accelX_slider.get()
         dy = ((round(target[1] - windowCenterY) * speedScaleY_slider.get()) / smoothing_slider.get()) * accelY_slider.get()
-        
+        print(dx, dy)
         # removes rounding loss at small values (somewhat)
-        if (dx < 1):
+        if (abs(dx) < 1):
             dx *= 2
-        if (dy < 1):
+        if (abs(dy) < 1):
             dy *= 2
 
-        # check if delta is within fov
-        if (abs(dx) > fovX_slider.get() or abs(dy) > fovY_slider.get()):
+        # check if delta is within fov (ellipse)
+        if (dx != 0 and dy != 0 and (abs(dx) / fovX_slider.get()) ** 2 + (abs(dy) / fovY_slider.get()) ** 2 > 1):
             continue
 
         # "rage mode" if target is far from crosshair
@@ -120,7 +124,7 @@ while True:
             # speed this up?
             if GetAsyncKeyState(ctypes.windll.user32.VkKeyScanW(ord(aimHotkey.get()))):
                 # new thread for mouse movement
-                threading.Thread(target=move_mouse, args=(dx, dy, smoothing_slider.get(), sleepTimer_slider.get())).start()
+                threading.Thread(target=move_mouse, args=(dx, dy, smoothing_slider.get(), sleepTimer_slider.get(), aimHotkey.get())).start()
 
         # holding down triggerbot hotkey
         if len(triggerbot_hotkey.get()) == 1 and not triggerbot.get():
