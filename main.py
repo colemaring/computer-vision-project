@@ -10,17 +10,15 @@ from win32api import GetAsyncKeyState
 from gui import *
 import ctypes
 
-#TODO: triggerbot & insta rage mode
-# make sure time sleep is on different threads
-# triggerbot delay between shots <- this wont work, remove these features
-# only initial delay is worth keeping
+# TODO: insta rage mode
+# TODO: inference speeds are spiking and then dropping, sometimes?
+# TODO: change fov from box to square
+# TODO: sometimes mouse will jump without holding aim key?
+# TODO: add saving profile settings, triggerbot randomized delay option, body shot option if using sniper, bezier curve aim path option
 
 model = YOLO("desktop/runs/detect/train13/weights/best.pt")
 sct = mss()
-monitor_sizeX = 1920
-monitor_sizeY = 1080
 target = None
-locked = False
 
 # move the mouse by dx, dy
 def move_mouse(dx, dy, steps, sleep_time):
@@ -28,21 +26,13 @@ def move_mouse(dx, dy, steps, sleep_time):
         win32api.mouse_event(win32con.MOUSEEVENTF_MOVE, int(dx), int(dy), 0, 0)
         time.sleep(sleep_time)
 
-def click_mouse(triggerbot_slider, triggerbot_slider_between_delay):
-    global locked
-    while (abs(target[0] - windowCenterX) < triggerbot_slider/10) and (abs(target[1] - windowCenterY) < triggerbot_slider/10):
-        locked = True
+# click function for triggerbot
+def click_mouse(triggerbot_slider):
+    # if the mouse is still over the target, initial delay seconds later
+    if (abs(target[0] - windowCenterX) < triggerbot_slider/10) and (abs(target[1] - windowCenterY) < triggerbot_slider/10):
         win32api.mouse_event(win32con.MOUSEEVENTF_LEFTDOWN, 0, 0, 0, 0)
         time.sleep(0.01)
         win32api.mouse_event(win32con.MOUSEEVENTF_LEFTUP, 0, 0, 0, 0)
-        time.sleep(triggerbot_slider_between_delay/1000)
-    locked = False
-    print("HELLLLLLOOOOSDOFIHSDOFIHSDF")
-
-def clicky():
-    win32api.mouse_event(win32con.MOUSEEVENTF_LEFTDOWN, 0, 0, 0, 0)
-    time.sleep(0.01)
-    win32api.mouse_event(win32con.MOUSEEVENTF_LEFTUP, 0, 0, 0, 0)
 
 # returns the bbox coords closest to the center of the screen
 def bbox_closest_to_center(results, bounding_box):
@@ -69,13 +59,15 @@ def bbox_closest_to_center(results, bounding_box):
 # run tkinter thread
 def start_tkinter_loop():
     root.mainloop()
+
+# dont bother with tcl error. I'll switch to DearPyGui eventually
 threading.Thread(target=start_tkinter_loop).start()
 
 while True:
     root.update()
     window_sizeX = inference_windowX.get()
     window_sizeY = inference_windowY.get()
-    bounding_box = {'top': int((monitor_sizeY / 2) - (window_sizeY / 2)) , 'left': int((monitor_sizeX / 2) - (window_sizeX / 2)), 'width': window_sizeX, 'height': window_sizeY}
+    bounding_box = {'top': int((int(fullscreen_resolution_y.get()) / 2) - (window_sizeY / 2)) , 'left': int((int(fullscreen_resolution_x.get()) / 2) - (window_sizeX / 2)), 'width': window_sizeX, 'height': window_sizeY}
     screenshot = sct.grab(bounding_box)  # capture the screen
     img = np.array(screenshot)  # convert the screenshot to a numpy array
     img = cv2.cvtColor(img, cv2.COLOR_RGBA2RGB)  # convert the image from RGBA to RGB
@@ -120,8 +112,8 @@ while True:
 
         # triggerbot
         if (triggerbot.get()):
-            if (abs(target[0] - windowCenterX) < triggerbot_slider.get()/10) and (abs(target[1] - windowCenterY) < triggerbot_slider.get()/10) and locked == False:
-                threading.Timer(triggerbot_slider_initial_delay.get()/1000, click_mouse, args=(triggerbot_slider.get(),triggerbot_slider_between_delay.get())).start()
+            if (abs(target[0] - windowCenterX) < triggerbot_slider.get()/10) and (abs(target[1] - windowCenterY) < triggerbot_slider.get()/10):
+                threading.Timer(triggerbot_slider_initial_delay.get()/1000, click_mouse, args=(triggerbot_slider.get(),)).start()
 
         # holding down aim hotkey
         if len(aimHotkey.get()) == 1:
@@ -129,9 +121,13 @@ while True:
             if GetAsyncKeyState(ctypes.windll.user32.VkKeyScanW(ord(aimHotkey.get()))):
                 # new thread for mouse movement
                 threading.Thread(target=move_mouse, args=(dx, dy, smoothing_slider.get(), sleepTimer_slider.get())).start()
-        
-        
 
+        # holding down triggerbot hotkey
+        if len(triggerbot_hotkey.get()) == 1 and not triggerbot.get():
+            if GetAsyncKeyState(ctypes.windll.user32.VkKeyScanW(ord(triggerbot_hotkey.get()))):
+                if (abs(target[0] - windowCenterX) < triggerbot_slider.get()/10) and (abs(target[1] - windowCenterY) < triggerbot_slider.get()/10):
+                    threading.Timer(triggerbot_slider_initial_delay.get()/1000, click_mouse, args=(triggerbot_slider.get(),)).start()
+        
     # listen for exit hotkey
     if len(exitHotkey.get()) == 1:
         # user is interacting with text box
