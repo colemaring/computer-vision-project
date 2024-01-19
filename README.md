@@ -12,3 +12,28 @@ Frame inference latency depends on the size of the inference window. A 256x256 i
 # Demonstration
 https://github.com/colemaring/symmetrical-guacamole/assets/65455664/9cd3d39c-6d13-40df-8af6-640e2eabab7f
 
+# Features
+General:
+Custom in-game resolution
+Inference window size for player detection
+Bounding box confidence levels
+Show inference window checkbox
+Exit program hotkey
+
+Aim Assist:
+Field of View controls
+Y aim height offset
+Mouse sleep timer
+Mouse smoothing controls
+Mouse speed controls
+Mouse acceleration controls
+Aim assist hotkey
+
+Auto shoot:
+Triggerbot always enabled checkbox
+Triggerbot sensitivity controls
+Triggerbot click delay
+Triggerbot hotkey
+
+
+
