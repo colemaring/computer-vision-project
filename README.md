@@ -11,6 +11,7 @@ Frame inference latency depends on the size of the inference window. A 256x256 i
 
 # Demonstration
 https://github.com/colemaring/symmetrical-guacamole/assets/65455664/9cd3d39c-6d13-40df-8af6-640e2eabab7f
+In this demo I am holding down the aim hotkey and only moving the mouse when a player is out of the FOV range.
 
 # Features
 General:<br>
